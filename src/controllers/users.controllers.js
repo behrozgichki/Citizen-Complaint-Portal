@@ -2,6 +2,7 @@ import User from "../models/users.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
+// Generate Access Token
 const generateAccessToken = (user) => {
   return jwt.sign(
     { email: user.email },
@@ -12,6 +13,7 @@ const generateAccessToken = (user) => {
   );
 };
 
+// Generate Refresh Token
 const generateRefreshToken = (user) => {
   return jwt.sign(
     { email: user.email },
@@ -22,6 +24,7 @@ const generateRefreshToken = (user) => {
   );
 };
 
+// Check JWT Token
 const checkJWTToken = (req, res) => {
   const user = {
     email: "mabdullah2037@gmail.com",
@@ -36,6 +39,7 @@ const checkJWTToken = (req, res) => {
   });
 };
 
+// Bcrypt Password Test
 const bcryptPassword = async (req, res) => {
   try {
     const { password } = req.body;
@@ -60,6 +64,7 @@ const bcryptPassword = async (req, res) => {
   }
 };
 
+// Register User
 const registerUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -76,6 +81,7 @@ const registerUser = async (req, res) => {
       });
     }
 
+    // Check if user already exists
     const user = await User.findOne({ email });
 
     if (user) {
@@ -84,11 +90,11 @@ const registerUser = async (req, res) => {
       });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
-
+    // Create user
+    // Your User model will hash the password automatically
     const createUser = await User.create({
       email,
-      password: hashedPassword,
+      password,
     });
 
     return res.status(201).json({
@@ -108,10 +114,200 @@ const registerUser = async (req, res) => {
   }
 };
 
+// Login User
+const loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        message: "email is required",
+      });
+    }
+
+    if (!password) {
+      return res.status(400).json({
+        message: "password required",
+      });
+    }
+
+    // Find user
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({
+        message: "user not found",
+      });
+    }
+
+    // Compare password
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      user.password
+    );
+
+    if (!isPasswordValid) {
+      return res.status(400).json({
+        message: "password is incorrect",
+      });
+    }
+
+    // Generate tokens
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+
+    // Store refresh token in cookie
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: false,
+    });
+
+    return res.json({
+      message: "user loggedIn successfully",
+      accessToken,
+      refreshToken,
+      data: {
+        id: user._id,
+        email: user.email,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+
+    return res.status(500).json({
+      message: "something went wrong",
+      error: error.message,
+    });
+  }
+};
+
+// Refresh Token
+const refreshToken = async (req, res) => {
+  try {
+    const token =
+      req.cookies.refreshToken || req.body.refreshToken;
+
+    if (!token) {
+      return res.status(401).json({
+        message: "no refresh token found!",
+      });
+    }
+
+    // Verify refresh token
+    const decodedToken = jwt.verify(
+      token,
+      process.env.REFRESH_JWT_SECRET
+    );
+
+    // Find user
+    const user = await User.findOne({
+      email: decodedToken.email,
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        message: "invalid token",
+      });
+    }
+
+    // Generate new access token
+    const accessToken = generateAccessToken(user);
+
+    return res.json({
+      message: "access token generated",
+      accessToken,
+    });
+  } catch (error) {
+    console.log(error);
+
+    return res.status(401).json({
+      message: "invalid or expired refresh token",
+    });
+  }
+};
+
+// Logout User
+const logoutUser = async (req, res) => {
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: false,
+  });
+
+  return res.json({
+    message: "user logout successfully",
+  });
+};
+
+// Authenticate User Middleware
+const authenticateUser = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json({
+      message: "no authorization header found",
+    });
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({
+      message: "no token found",
+    });
+  }
+
+  jwt.verify(
+    token,
+    process.env.ACCESS_JWT_SECRET,
+    (err, user) => {
+      if (err) {
+        return res.status(403).json({
+          message: "invalid or expired token",
+        });
+      }
+
+      req.user = user;
+
+      next();
+    }
+  );
+};
+
+
+const getProfile = async (req, res) => {
+  try {
+    const user = await User.findOne({
+      email: req.user.email,
+    }).select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Profile fetched successfully",
+      user,
+    });
+  } catch (error) {
+    console.log("GET PROFILE ERROR:", error);
+
+    return res.status(500).json({
+      message: "Something went wrong",
+    });
+  }
+};
+
 export {
   registerUser,
   bcryptPassword,
   checkJWTToken,
   generateAccessToken,
   generateRefreshToken,
+  refreshToken,
+  loginUser,
+  logoutUser,
+  authenticateUser,
+  getProfile,
 };
