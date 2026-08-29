@@ -5,7 +5,10 @@ import jwt from "jsonwebtoken";
 // Generate Access Token
 const generateAccessToken = (user) => {
   return jwt.sign(
-    { email: user.email },
+    {
+      email: user.email,
+      role: user.role,
+    },
     process.env.ACCESS_JWT_SECRET,
     {
       expiresIn: "6h",
@@ -13,10 +16,12 @@ const generateAccessToken = (user) => {
   );
 };
 
-// Generate Refresh Token
 const generateRefreshToken = (user) => {
   return jwt.sign(
-    { email: user.email },
+    {
+      email: user.email,
+      role: user.role,
+    },
     process.env.REFRESH_JWT_SECRET,
     {
       expiresIn: "7d",
@@ -239,39 +244,62 @@ const logoutUser = async (req, res) => {
 };
 
 // Authenticate User Middleware
+
 const authenticateUser = (req, res, next) => {
-  const authHeader = req.headers.authorization;
+  try {
+    const authHeader = req.headers.authorization;
 
-  if (!authHeader) {
-    return res.status(401).json({
-      message: "no authorization header found",
-    });
-  }
-
-  const token = authHeader.split(" ")[1];
-
-  if (!token) {
-    return res.status(401).json({
-      message: "no token found",
-    });
-  }
-
-  jwt.verify(
-    token,
-    process.env.ACCESS_JWT_SECRET,
-    (err, user) => {
-      if (err) {
-        return res.status(403).json({
-          message: "invalid or expired token",
-        });
-      }
-
-      req.user = user;
-
-      next();
+    if (!authHeader) {
+      return res.status(401).json({
+        message: "Authorization header required",
+      });
     }
-  );
+
+    const token = authHeader.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({
+        message: "Token required",
+      });
+    }
+
+    jwt.verify(
+      token,
+      process.env.ACCESS_JWT_SECRET,
+      (err, user) => {
+        if (err) {
+          return res.status(403).json({
+            message: "Invalid or expired token",
+          });
+        }
+
+        req.user = user;
+        next();
+      }
+    );
+  } catch (error) {
+    return res.status(500).json({
+      message: "Authentication failed",
+    });
+  }
 };
+
+const authorizeAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      message: "Unauthorized",
+    });
+  }
+
+  if (req.user.role !== "admin") {
+    return res.status(403).json({
+      message: "Admin access required",
+    });
+  }
+
+  next();
+};
+
 
 
 const getProfile = async (req, res) => {
@@ -310,4 +338,5 @@ export {
   logoutUser,
   authenticateUser,
   getProfile,
+  authorizeAdmin
 };

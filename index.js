@@ -4,7 +4,7 @@ import connectDB from "./src/db/index.js";
 import userRoutes from "./src/routes/users.routes.js";
 import cors from 'cors'
 import cookieParser from "cookie-parser";
-
+import adminRoutes from "./src/routes/admin.routes.js";
 dotenv.config();
 
 const app = express();
@@ -25,6 +25,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/", userRoutes);
+app.use("/admin", adminRoutes);
 
 connectDB()
   .then(() => {

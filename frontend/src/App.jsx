@@ -9,7 +9,7 @@ import Navbar from "./components/Navbar";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashbord";
-
+import AdminDashboard from "./pages/AdminDashbord";
 import ProtectedRoute from "./components/ProctectedRoutes";
 
 import "./App.css";
@@ -64,7 +64,16 @@ function App() {
               <Dashboard />
             </ProtectedRoute>
           }
+          
         />
+        <Route
+  path="/admin"
+  element={
+    <ProtectedRoute>
+      <AdminDashboard />
+    </ProtectedRoute>
+  }
+/>
 
       </Routes>
 
