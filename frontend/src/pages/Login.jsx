@@ -19,19 +19,18 @@ function Login() {
     setLoading(true);
 
     try {
-      const data = await loginUser(
-        email,
-        password
-      );
+      const data = await loginUser(email, password);
 
-      localStorage.setItem(
-        "accessToken",
-        data.accessToken
-      );
+      localStorage.setItem("accessToken", data.accessToken);
+      localStorage.setItem("user", JSON.stringify(data.data));
 
-      navigate("/dashboard");
-    } catch (error) {
-      setError(error.message);
+      if (data.data.role === "admin") {
+        navigate("/officer/dashboard");
+      } else {
+        navigate("/dashboard");
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -44,14 +43,12 @@ function Login() {
 
         <div className="auth-brand">
 
-          <div className="brand-icon">
-            A
-          </div>
+          <div className="brand-icon">CC</div>
 
           <h1>Welcome back</h1>
 
           <p>
-            Sign in to continue to AuthFlow
+            Access your CivicConnect citizen portal
           </p>
 
         </div>
@@ -85,9 +82,7 @@ function Login() {
                   type="email"
                   placeholder="you@example.com"
                   value={email}
-                  onChange={(e) =>
-                    setEmail(e.target.value)
-                  }
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                 />
 
@@ -107,9 +102,7 @@ function Login() {
                   type="password"
                   placeholder="Enter your password"
                   value={password}
-                  onChange={(e) =>
-                    setPassword(e.target.value)
-                  }
+                  onChange={(e) => setPassword(e.target.value)}
                   required
                 />
 
@@ -122,9 +115,7 @@ function Login() {
               type="submit"
               disabled={loading}
             >
-              {loading
-                ? "Signing in..."
-                : "Sign in"}
+              {loading ? "Signing in..." : "Sign in"}
             </button>
 
           </form>
@@ -139,9 +130,7 @@ function Login() {
                 border: "none",
                 background: "transparent",
               }}
-              onClick={() =>
-                navigate("/register")
-              }
+              onClick={() => navigate("/register")}
             >
               Create account
             </button>

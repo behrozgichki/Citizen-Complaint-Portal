@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 const generateAccessToken = (user) => {
   return jwt.sign(
     {
+      id: user._id.toString(),
       email: user.email,
       role: user.role,
     },
@@ -55,7 +56,6 @@ const bcryptPassword = async (req, res) => {
       });
     }
 
-    const hash = await bcrypt.hash(password, 12);
 
     return res.json({
       password: hash,
@@ -86,27 +86,26 @@ const registerUser = async (req, res) => {
       });
     }
 
-    // Check if user already exists
-    const user = await User.findOne({ email });
+    const existingUser = await User.findOne({ email });
 
-    if (user) {
+    if (existingUser) {
       return res.status(400).json({
         message: "user already exists",
       });
     }
 
-    // Create user
-    // Your User model will hash the password automatically
-    const createUser = await User.create({
+    const user = await User.create({
       email,
       password,
     });
 
     return res.status(201).json({
       message: "user registered successfully",
+
       data: {
-        id: createUser._id,
-        email: createUser.email,
+        id: user._id,
+        email: user.email,
+        role: user.role,
       },
     });
   } catch (error) {
@@ -167,15 +166,19 @@ const loginUser = async (req, res) => {
       secure: false,
     });
 
-    return res.json({
-      message: "user loggedIn successfully",
-      accessToken,
-      refreshToken,
-      data: {
-        id: user._id,
-        email: user.email,
-      },
-    });
+  return res.json({
+  message: "user loggedIn successfully",
+
+  accessToken,
+
+  refreshToken,
+
+  data: {
+    id: user._id,
+    email: user.email,
+    role: user.role,
+  },
+});
   } catch (error) {
     console.log(error);
 

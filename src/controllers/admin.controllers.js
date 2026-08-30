@@ -7,64 +7,61 @@ const getAllUsers = async (req, res) => {
       .select("-password")
       .sort({ createdAt: -1 });
 
-    return res.json({
-      message: "Users fetched successfully",
+    return res.status(200).json({
+      message: "users fetched successfully",
+      count: users.length,
       data: users,
     });
   } catch (error) {
     console.log(error);
 
     return res.status(500).json({
-      message: "Failed to fetch users",
+      message: "failed to fetch users",
     });
   }
 };
 
-
-// Delete user
-const deleteUser = async (req, res) => {
+// Get single user
+const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const user = await User.findById(id);
+    const user = await User.findById(id).select("-password");
 
     if (!user) {
       return res.status(404).json({
-        message: "User not found",
+        message: "user not found",
       });
     }
 
-    // Prevent admin from deleting themselves
-    if (user.email === req.user.email) {
-      return res.status(400).json({
-        message: "You cannot delete yourself",
-      });
-    }
-
-    await User.findByIdAndDelete(id);
-
-    return res.json({
-      message: "User deleted successfully",
+    return res.status(200).json({
+      message: "user fetched successfully",
+      data: user,
     });
   } catch (error) {
     console.log(error);
 
     return res.status(500).json({
-      message: "Failed to delete user",
+      message: "failed to fetch user",
     });
   }
 };
 
-
 // Change user role
-const updateUserRole = async (req, res) => {
+const changeUserRole = async (req, res) => {
   try {
     const { id } = req.params;
     const { role } = req.body;
 
+    if (!role) {
+      return res.status(400).json({
+        message: "role is required",
+      });
+    }
+
     if (!["user", "admin"].includes(role)) {
       return res.status(400).json({
-        message: "Invalid role",
+        message: "invalid role",
       });
     }
 
@@ -72,13 +69,14 @@ const updateUserRole = async (req, res) => {
 
     if (!user) {
       return res.status(404).json({
-        message: "User not found",
+        message: "user not found",
       });
     }
 
-    if (user.email === req.user.email) {
+    // Prevent admin from changing their own role
+    if (user._id.toString() === req.user._id.toString()) {
       return res.status(400).json({
-        message: "You cannot change your own role",
+        message: "you cannot change your own role",
       });
     }
 
@@ -86,8 +84,8 @@ const updateUserRole = async (req, res) => {
 
     await user.save();
 
-    return res.json({
-      message: "User role updated successfully",
+    return res.status(200).json({
+      message: "user role updated successfully",
       data: {
         id: user._id,
         email: user.email,
@@ -98,14 +96,48 @@ const updateUserRole = async (req, res) => {
     console.log(error);
 
     return res.status(500).json({
-      message: "Failed to update user role",
+      message: "failed to update user role",
     });
   }
 };
 
+// Delete user
+const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(id);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "user not found",
+      });
+    }
+
+    // Prevent admin from deleting themselves
+    if (user._id.toString() === req.user._id.toString()) {
+      return res.status(400).json({
+        message: "you cannot delete yourself",
+      });
+    }
+
+    await User.findByIdAndDelete(id);
+
+    return res.status(200).json({
+      message: "user deleted successfully",
+    });
+  } catch (error) {
+    console.log(error);
+
+    return res.status(500).json({
+      message: "failed to delete user",
+    });
+  }
+};
 
 export {
   getAllUsers,
+  getUserById,
+  changeUserRole,
   deleteUser,
-  updateUserRole,
 };

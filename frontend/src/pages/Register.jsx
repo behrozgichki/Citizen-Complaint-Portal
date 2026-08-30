@@ -39,14 +39,12 @@ function Register() {
 
         <div className="auth-brand">
 
-          <div className="brand-icon">
-            A
-          </div>
+          <div className="brand-icon">CC</div>
 
           <h1>Create your account</h1>
 
           <p>
-            Start using AuthFlow today
+            Join your local CivicConnect community
           </p>
 
         </div>
@@ -56,8 +54,7 @@ function Register() {
           <h2>Get started</h2>
 
           <p className="auth-description">
-            Create an account to access your
-            dashboard.
+            Create your citizen account to report and track civic issues.
           </p>
 
           {error && (

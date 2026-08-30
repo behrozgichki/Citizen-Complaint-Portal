@@ -1,17 +1,23 @@
 {
   "name": "authentication-",
   "version": "1.0.0",
-  "description": "",
+  "description": "Authentication API with Express, MongoDB, JWT and React",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon index.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "echo \"No tests specified\""
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/behrozgichki/Authentication-.git"
   },
-  "keywords": [],
+  "keywords": [
+    "authentication",
+    "express",
+    "mongodb",
+    "jwt"
+  ],
   "author": "",
   "license": "ISC",
   "type": "module",
@@ -24,13 +30,14 @@
     "cookie-parser": "^1.4.7",
     "cookies": "^0.9.1",
     "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
     "mongodb": "^7.6.0",
-    "mongoose": "^9.9.3"
+    "mongoose": "^9.9.3",
+    "openai": "^7.8.0"
   },
   "devDependencies": {
-    "dotenv": "^17.4.2",
-    "jsonwebtoken": "^9.0.3",
     "nodemon": "^3.1.14"
   }
 }

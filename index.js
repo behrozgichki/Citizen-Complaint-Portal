@@ -6,18 +6,25 @@ import cors from 'cors'
 import cookieParser from "cookie-parser";
 import adminRoutes from "./src/routes/admin.routes.js";
 dotenv.config();
+import complaintRoutes from "./src/routes/complaints.routes.js";
+import aiRoutes from "./src/routes/ai.routes.js";
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(express.json());
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://frontend-one-wine-hcalfkz3w7.vercel.app",
+];
+
 app.use(
   cors({
-    origin:"http://localhost:5173",
-    credentials: true
+    origin: allowedOrigins,
+    credentials: true,
   })
-)
+);
 app.use(cookieParser())
 
 app.get("/", (req, res) => {
@@ -26,6 +33,14 @@ app.get("/", (req, res) => {
 
 app.use("/", userRoutes);
 app.use("/admin", adminRoutes);
+app.use(
+  "/api/complaints",
+  complaintRoutes
+);
+app.use(
+  "/api/ai",
+  aiRoutes
+);
 
 connectDB()
   .then(() => {
