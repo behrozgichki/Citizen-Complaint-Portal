@@ -1,16 +1,16 @@
-const API_URL = "http://localhost:3000";
-import { authenticatedFetch } from "./api";
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:3000";
 
+import { authenticatedFetch } from "./api";
 
 // REGISTER
 export const registerUser = async (email, password) => {
   const response = await fetch(`${API_URL}/register`, {
     method: "POST",
-
     headers: {
       "Content-Type": "application/json",
     },
-
+    credentials: "include",
     body: JSON.stringify({
       email,
       password,
@@ -26,18 +26,14 @@ export const registerUser = async (email, password) => {
   return data;
 };
 
-
 // LOGIN
 export const loginUser = async (email, password) => {
   const response = await fetch(`${API_URL}/login`, {
     method: "POST",
-
     headers: {
       "Content-Type": "application/json",
     },
-
     credentials: "include",
-
     body: JSON.stringify({
       email,
       password,
@@ -53,12 +49,10 @@ export const loginUser = async (email, password) => {
   return data;
 };
 
-
 // LOGOUT
 export const logoutUser = async () => {
   const response = await fetch(`${API_URL}/logout`, {
     method: "POST",
-
     credentials: "include",
   });
 
@@ -71,29 +65,19 @@ export const logoutUser = async () => {
   return data;
 };
 
-
 // GET PROFILE
 export const getProfile = async () => {
   const token = localStorage.getItem("accessToken");
 
-  console.log("Access token:", token);
-
-  const response = await fetch(
-    `${API_URL}/profile`,
-    {
-      method: "GET",
-
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-
-      credentials: "include",
-    }
-  );
+  const response = await fetch(`${API_URL}/profile`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: "include",
+  });
 
   const data = await response.json();
-
-  console.log("Profile response:", data);
 
   if (!response.ok) {
     throw new Error(
@@ -104,12 +88,10 @@ export const getProfile = async () => {
   return data;
 };
 
-
 // REFRESH TOKEN
 export const refreshAccessToken = async () => {
   const response = await fetch(`${API_URL}/refresh-token`, {
     method: "POST",
-
     credentials: "include",
   });
 

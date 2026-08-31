@@ -1,4 +1,5 @@
-const API_URL = "http://localhost:3000";
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 const refreshAccessToken = async () => {
   const response = await fetch(`${API_URL}/refresh-token`, {
@@ -48,12 +49,11 @@ export const authenticatedFetch = async (
 
         credentials: "include",
       });
-    } catch (error) {
+    } catch {
       localStorage.removeItem("accessToken");
+      localStorage.removeItem("user");
 
-      throw new Error(
-        "Session expired. Please login again."
-      );
+      throw new Error("Session expired. Please login again.");
     }
   }
 

@@ -14,14 +14,10 @@ const port = process.env.PORT || 3000;
 
 app.use(express.json());
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://frontend-one-wine-hcalfkz3w7.vercel.app",
-];
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
     credentials: true,
   })
 );

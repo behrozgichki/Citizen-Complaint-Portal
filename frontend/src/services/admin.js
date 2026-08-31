@@ -1,9 +1,7 @@
-const API_URL = "http://localhost:3000/admin";
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-const getToken = () => {
-  return localStorage.getItem("accessToken");
-};
-
+const getToken = () => localStorage.getItem("accessToken");
 
 // Get users
 export const getUsers = async () => {
