@@ -2,26 +2,51 @@ import express from "express";
 import dotenv from "dotenv";
 import connectDB from "./src/db/index.js";
 import userRoutes from "./src/routes/users.routes.js";
-import cors from 'cors'
+import cors from "cors";
 import cookieParser from "cookie-parser";
 import adminRoutes from "./src/routes/admin.routes.js";
-dotenv.config();
 import complaintRoutes from "./src/routes/complaints.routes.js";
 import aiRoutes from "./src/routes/ai.routes.js";
+
+dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(express.json());
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  process.env.FRONTEND_URL,
+].filter(Boolean);
 
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      if (
+        /^https:\/\/citizen-complaint-portal-[a-z0-9-]+-behrozgichkis-projects\.vercel\.app$/.test(
+          origin
+        )
+      ) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
   })
 );
-app.use(cookieParser())
+
+app.use(cookieParser());
 
 app.get("/", (req, res) => {
   res.send("Hello World!");
@@ -29,14 +54,8 @@ app.get("/", (req, res) => {
 
 app.use("/", userRoutes);
 app.use("/admin", adminRoutes);
-app.use(
-  "/api/complaints",
-  complaintRoutes
-);
-app.use(
-  "/api/ai",
-  aiRoutes
-);
+app.use("/api/complaints", complaintRoutes);
+app.use("/api/ai", aiRoutes);
 
 connectDB()
   .then(() => {
