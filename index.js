@@ -16,7 +16,8 @@ const port = process.env.PORT || 3000;
 app.use(express.json());
 
 const allowedOrigins = [
-  "https://frontend-one-wine-hcalfkz3w7.vercel.app",
+  "http://localhost:5173",
+  "http://localhost:5174",
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
@@ -28,14 +29,6 @@ app.use(
       }
 
       if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      if (
-        /^https:\/\/citizen-complaint-portal-[a-z0-9-]+-behrozgichkis-projects\.vercel\.app$/.test(
-          origin
-        )
-      ) {
         return callback(null, true);
       }
 
