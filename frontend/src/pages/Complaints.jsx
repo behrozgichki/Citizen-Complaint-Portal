@@ -26,24 +26,46 @@ function Complaints() {
     }
   };
 
-  const handleUpvote = async (id) => {
-    try {
-      await upvoteComplaint(id);
+const handleUpvote = async (id) => {
+  try {
+    const response = await upvoteComplaint(id);
 
+    setComplaints((current) =>
+      current.map((complaint) =>
+        complaint._id === id
+          ? {
+              ...complaint,
+              upvotes:
+                response.data?.upvotes ??
+                response.complaint?.upvotes ??
+                complaint.upvotes + 1,
+              hasUpvoted: true,
+            }
+          : complaint
+      )
+    );
+  } catch (error) {
+    const message =
+      error.message?.toLowerCase() || "";
+
+    if (message.includes("already upvoted")) {
       setComplaints((current) =>
         current.map((complaint) =>
           complaint._id === id
             ? {
                 ...complaint,
-                upvotes: complaint.upvotes + 1,
+                hasUpvoted: true,
               }
             : complaint
         )
       );
-    } catch (error) {
-      alert(error.message);
+
+      return;
     }
-  };
+
+    console.error("UPVOTE ERROR:", error);
+  }
+};
 
   const filteredComplaints = complaints.filter((complaint) => {
     const matchesSearch =
@@ -149,14 +171,22 @@ function Complaints() {
 )}
 
             <div className="card-footer">
-              <span>{complaint.upvotes} community votes</span>
-
+             <span>
+  {complaint.upvotes || 0} community votes
+</span>
               <button
-                className="vote-button"
-                onClick={() => handleUpvote(complaint._id)}
-              >
-                ▲ Upvote
-              </button>
+  className={`vote-button ${
+    complaint.hasUpvoted ? "upvoted" : ""
+  }`}
+  onClick={() =>
+    handleUpvote(complaint._id)
+  }
+  disabled={complaint.hasUpvoted}
+>
+  {complaint.hasUpvoted
+    ? "✓ Upvoted"
+    : "▲ Upvote"}
+</button>
             </div>
           </article>
         ))}

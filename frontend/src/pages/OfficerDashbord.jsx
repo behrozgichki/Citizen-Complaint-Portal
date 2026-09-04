@@ -150,6 +150,49 @@ function OfficerDashboard() {
       return matchesSearch && matchesCategory && matchesStatus;
     });
   }, [complaints, search, categoryFilter, statusFilter]);
+  const sortedComplaints = useMemo(() => {
+  const priorityRank = {
+    Critical: 4,
+    High: 3,
+    Medium: 2,
+    Low: 1,
+  };
+
+  return [...filteredComplaints].sort((a, b) => {
+    // 1. Critical > High > Medium > Low
+    const priorityDifference =
+      (priorityRank[b.priority] || 0) -
+      (priorityRank[a.priority] || 0);
+
+    if (priorityDifference !== 0) {
+      return priorityDifference;
+    }
+
+    // 2. Higher priority score first
+    const scoreDifference =
+      Number(b.priorityScore || 0) -
+      Number(a.priorityScore || 0);
+
+    if (scoreDifference !== 0) {
+      return scoreDifference;
+    }
+
+    // 3. More upvotes first
+    const upvoteDifference =
+      Number(b.upvotes || 0) -
+      Number(a.upvotes || 0);
+
+    if (upvoteDifference !== 0) {
+      return upvoteDifference;
+    }
+
+    // 4. Newest first if everything else is equal
+    return (
+      new Date(b.createdAt).getTime() -
+      new Date(a.createdAt).getTime()
+    );
+  });
+}, [filteredComplaints]);
 
   const metrics = useMemo(() => {
     const pending = complaints.filter((c) => c.status === "Pending").length;
@@ -182,17 +225,40 @@ function OfficerDashboard() {
     return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
   }, [complaints]);
 
-  const urgentQueue = useMemo(() => {
-    return [...complaints]
-      .filter((c) => c.status !== "Resolved")
-      .sort((a, b) => {
-        const rank = { Critical: 4, High: 3, Medium: 2, Low: 1 };
-        const priorityDiff = (rank[b.priority] || 0) - (rank[a.priority] || 0);
-        if (priorityDiff) return priorityDiff;
-        return Number(b.upvotes || 0) - Number(a.upvotes || 0);
-      })
-      .slice(0, 4);
-  }, [complaints]);
+const urgentQueue = useMemo(() => {
+  const rank = {
+    Critical: 4,
+    High: 3,
+    Medium: 2,
+    Low: 1,
+  };
+
+  return [...complaints]
+    .filter((complaint) => complaint.status !== "Resolved")
+    .sort((a, b) => {
+      const priorityDifference =
+        (rank[b.priority] || 0) -
+        (rank[a.priority] || 0);
+
+      if (priorityDifference !== 0) {
+        return priorityDifference;
+      }
+
+      const scoreDifference =
+        Number(b.priorityScore || 0) -
+        Number(a.priorityScore || 0);
+
+      if (scoreDifference !== 0) {
+        return scoreDifference;
+      }
+
+      return (
+        Number(b.upvotes || 0) -
+        Number(a.upvotes || 0)
+      );
+    })
+    .slice(0, 4);
+}, [complaints]);
 
   const handleExportCSV = () => {
     if (!filteredComplaints.length) {
@@ -411,7 +477,7 @@ function OfficerDashboard() {
               <table className="officer-table-v6">
                 <thead><tr><th>Case</th><th>Location</th><th>Priority</th><th>Status</th><th>Signal</th><th>Feedback</th><th></th></tr></thead>
                 <tbody>
-                  {filteredComplaints.map((complaint) => (
+                 {sortedComplaints.map((complaint) => (
                     <tr key={complaint._id}>
                       <td><div className="officer-case-v6"><span>{complaint.category?.charAt(0) || "C"}</span><p><strong>{complaint.title}</strong><small>{complaint.category} · {complaint.createdAt ? new Date(complaint.createdAt).toLocaleDateString() : "Recent"}</small></p></div></td>
                       <td><span className="officer-location-v6"><Icon name="pin" size={14}/>{complaint.area}</span></td>

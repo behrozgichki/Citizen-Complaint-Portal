@@ -4,18 +4,13 @@ const complaintSchema = new mongoose.Schema(
   {
     title: {
       type: String,
-      required: [true, "Title is required"],
-      trim: true,
-    },
-
-    description: {
-      type: String,
-      required: [true, "Description is required"],
+      required: true,
       trim: true,
     },
 
     category: {
       type: String,
+      required: true,
       enum: [
         "Road",
         "Garbage",
@@ -23,43 +18,52 @@ const complaintSchema = new mongoose.Schema(
         "Electricity",
         "Other",
       ],
+    },
+
+    description: {
+      type: String,
       required: true,
+      trim: true,
     },
 
     area: {
       type: String,
-      required: [true, "Area is required"],
+      required: true,
       trim: true,
     },
-latitude: {
-  type: Number,
-  default: null,
-},
-
-longitude: {
-  type: Number,
-  default: null,
-},
-    imageUrl: {
-      type: String,
-      default: "",
-      trim: true,
-    },
-    
 
     status: {
       type: String,
-      enum: [
-        "Pending",
-        "In Progress",
-        "Resolved",
-      ],
+      enum: ["Pending", "In Progress", "Resolved"],
       default: "Pending",
     },
 
     upvotes: {
       type: Number,
       default: 0,
+    },
+
+    upvotedBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+
+    imageUrl: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    latitude: {
+      type: Number,
+      default: null,
+    },
+
+    longitude: {
+      type: Number,
+      default: null,
     },
 
     officerRemark: {
@@ -69,7 +73,7 @@ longitude: {
 
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Users",
+      ref: "User",
       required: true,
     },
 
@@ -83,11 +87,6 @@ longitude: {
     feedbackComment: {
       type: String,
       default: "",
-    },
-
-    feedbackGiven: {
-      type: Boolean,
-      default: false,
     },
 
     feedbackPending: {

@@ -4,35 +4,39 @@ import Complaint from "../models/complaints.model.js";
 // PRIORITY HELPER
 // ==========================
 
-const calculatePriority = (complaint) => {
-  const createdDate = new Date(complaint.createdAt);
-  const today = new Date();
+const calculatePriorityScore = (complaint) => {
+  const createdAt = new Date(complaint.createdAt);
 
-  const difference =
-    today.getTime() - createdDate.getTime();
+  const now = new Date();
 
   const daysSinceCreated = Math.floor(
-    difference / (1000 * 60 * 60 * 24)
+    (now - createdAt) / (1000 * 60 * 60 * 24)
   );
 
-  const score =
+  return (
     (complaint.upvotes || 0) * 2 +
-    daysSinceCreated;
+    Math.max(daysSinceCreated, 0)
+  );
+};
 
-  if (score < 5) {
-    return "Low";
+const calculatePriority = (complaint) => {
+  const score = calculatePriorityScore(complaint);
+
+  if (score > 30) {
+    return "Critical";
   }
 
-  if (score <= 15) {
-    return "Medium";
-  }
-
-  if (score <= 30) {
+  if (score >= 16) {
     return "High";
   }
 
-  return "Critical";
+  if (score >= 5) {
+    return "Medium";
+  }
+
+  return "Low";
 };
+
 
 // ==========================
 // CREATE COMPLAINT
@@ -264,10 +268,7 @@ const createComplaint = async (req, res) => {
 // GET ALL COMPLAINTS
 // ==========================
 
-const getAllComplaints = async (
-  req,
-  res
-) => {
+const getAllComplaints = async (req, res) => {
   try {
     const {
       search,
@@ -316,48 +317,83 @@ const getAllComplaints = async (
       ];
     }
 
-    const complaints =
-      await Complaint.find(filter)
-        .populate(
-          "createdBy",
-          "email role"
-        )
-        .sort({
-          createdAt: -1,
-        });
+    const complaints = await Complaint.find(filter);
 
     const complaintsWithPriority =
-      complaints.map(
-        (complaint) => ({
-          ...complaint.toObject(),
+      complaints.map((complaint) => {
+        const complaintObject =
+          complaint.toObject();
 
-          priority:
-            calculatePriority(
-              complaint
-            ),
-        })
+        const createdAt =
+          new Date(complaintObject.createdAt);
+
+        const now = new Date();
+
+        const daysSinceCreated =
+          Math.max(
+            0,
+            Math.floor(
+              (now - createdAt) /
+                (1000 * 60 * 60 * 24)
+            )
+          );
+
+        const priorityScore =
+          Number(complaintObject.upvotes || 0) * 2 +
+          daysSinceCreated;
+
+        let priority = "Low";
+
+        if (priorityScore > 30) {
+          priority = "Critical";
+        } else if (priorityScore >= 16) {
+          priority = "High";
+        } else if (priorityScore >= 5) {
+          priority = "Medium";
+        }
+
+        return {
+          ...complaintObject,
+          priority,
+          priorityScore,
+        };
+      });
+
+    // Highest priority complaints first
+    complaintsWithPriority.sort((a, b) => {
+      if (b.priorityScore !== a.priorityScore) {
+        return b.priorityScore - a.priorityScore;
+      }
+
+      if (
+        Number(b.upvotes || 0) !==
+        Number(a.upvotes || 0)
+      ) {
+        return (
+          Number(b.upvotes || 0) -
+          Number(a.upvotes || 0)
+        );
+      }
+
+      return (
+        new Date(b.createdAt) -
+        new Date(a.createdAt)
       );
+    });
 
     return res.status(200).json({
-      message:
-        "complaints fetched successfully",
-
-      count:
-        complaintsWithPriority.length,
-
-      data:
-        complaintsWithPriority,
+      message: "complaints fetched successfully",
+      count: complaintsWithPriority.length,
+      data: complaintsWithPriority,
     });
   } catch (error) {
-    console.log(
+    console.error(
       "GET ALL COMPLAINTS ERROR:",
       error
     );
 
     return res.status(500).json({
-      message:
-        "failed to fetch complaints",
-
+      message: "failed to fetch complaints",
       error: error.message,
     });
   }
@@ -480,55 +516,76 @@ const getComplaintById = async (
 // UPVOTE COMPLAINT
 // ==========================
 
-const upvoteComplaint = async (
-  req,
-  res
-) => {
+const upvoteComplaint = async (req, res) => {
   try {
-    const complaint =
-      await Complaint.findByIdAndUpdate(
-        req.params.id,
-        {
-          $inc: {
-            upvotes: 1,
-          },
+    const complaintId = req.params.id;
+
+    const userId =
+      req.user?.id ||
+      req.user?._id ||
+      req.user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        message: "Authentication required",
+      });
+    }
+
+    /*
+      Atomic update:
+
+      Only update if this user's ID is NOT already
+      inside upvotedBy.
+
+      This also protects against fast double-clicks.
+    */
+    const complaint = await Complaint.findOneAndUpdate(
+      {
+        _id: complaintId,
+        upvotedBy: {
+          $ne: userId,
         },
-        {
-          new: true,
-        }
-      );
+      },
+      {
+        $addToSet: {
+          upvotedBy: userId,
+        },
+
+        $inc: {
+          upvotes: 1,
+        },
+      },
+      {
+        new: true,
+      }
+    );
 
     if (!complaint) {
-      return res.status(404).json({
+      const existingComplaint =
+        await Complaint.findById(complaintId);
+
+      if (!existingComplaint) {
+        return res.status(404).json({
+          message: "Complaint not found",
+        });
+      }
+
+      return res.status(409).json({
         message:
-          "complaint not found",
+          "You have already upvoted this complaint",
       });
     }
 
     return res.status(200).json({
-      message:
-        "complaint upvoted successfully",
-
-      data: {
-        ...complaint.toObject(),
-
-        priority:
-          calculatePriority(
-            complaint
-          ),
-      },
+      message: "Complaint upvoted successfully",
+      complaint,
+      hasUpvoted: true,
     });
   } catch (error) {
-    console.log(
-      "UPVOTE ERROR:",
-      error
-    );
+    console.error("Upvote complaint error:", error);
 
     return res.status(500).json({
-      message:
-        "failed to upvote complaint",
-
-      error: error.message,
+      message: "Failed to upvote complaint",
     });
   }
 };

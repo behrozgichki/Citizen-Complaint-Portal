@@ -1678,3 +1678,29 @@ body {
   color: #475569;
   line-height: 1.4;
 }
+.vote-button {
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #1f2937;
+  padding: 9px 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.vote-button:hover:not(:disabled) {
+  background: #f3f4f6;
+  transform: translateY(-1px);
+}
+
+.vote-button.upvoted {
+  background: #ecfdf5;
+  color: #15803d;
+  border-color: #86efac;
+  cursor: default;
+}
+
+.vote-button:disabled {
+  opacity: 1;
+}
