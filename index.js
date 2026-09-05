@@ -7,8 +7,10 @@ import cookieParser from "cookie-parser";
 import adminRoutes from "./src/routes/admin.routes.js";
 import complaintRoutes from "./src/routes/complaints.routes.js";
 import aiRoutes from "./src/routes/ai.routes.js";
+import dns from 'dns'
 
 dotenv.config();
+dns.setServers(["1.1.1.1" , "8.8.8.8"])
 
 const app = express();
 const port = process.env.PORT || 3000;
