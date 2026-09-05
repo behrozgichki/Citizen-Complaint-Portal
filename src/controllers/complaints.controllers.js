@@ -318,46 +318,60 @@ const getAllComplaints = async (req, res) => {
     }
 
     const complaints = await Complaint.find(filter);
+    const currentUserId =
+      req.user?._id ||
+      req.user?.id ||
+      req.user?.userId;
 
-    const complaintsWithPriority =
-      complaints.map((complaint) => {
-        const complaintObject =
-          complaint.toObject();
+   const complaintsWithPriority =
+  complaints.map((complaint) => {
+    const complaintObject =
+      complaint.toObject();
 
-        const createdAt =
-          new Date(complaintObject.createdAt);
+    const createdAt =
+      new Date(complaintObject.createdAt);
 
-        const now = new Date();
+    const now = new Date();
 
-        const daysSinceCreated =
-          Math.max(
-            0,
-            Math.floor(
-              (now - createdAt) /
-                (1000 * 60 * 60 * 24)
-            )
-          );
+    const daysSinceCreated =
+      Math.max(
+        0,
+        Math.floor(
+          (now - createdAt) /
+            (1000 * 60 * 60 * 24)
+        )
+      );
 
-        const priorityScore =
-          Number(complaintObject.upvotes || 0) * 2 +
-          daysSinceCreated;
+    const priorityScore =
+      Number(complaintObject.upvotes || 0) * 2 +
+      daysSinceCreated;
 
-        let priority = "Low";
+    let priority = "Low";
 
-        if (priorityScore > 30) {
-          priority = "Critical";
-        } else if (priorityScore >= 16) {
-          priority = "High";
-        } else if (priorityScore >= 5) {
-          priority = "Medium";
-        }
+    if (priorityScore > 30) {
+      priority = "Critical";
+    } else if (priorityScore >= 16) {
+      priority = "High";
+    } else if (priorityScore >= 5) {
+      priority = "Medium";
+    }
 
-        return {
-          ...complaintObject,
-          priority,
-          priorityScore,
-        };
-      });
+    // Check whether current user has upvoted
+    const hasUpvoted = currentUserId
+      ? (complaintObject.upvotedBy || []).some(
+          (userId) =>
+            userId.toString() ===
+            currentUserId.toString()
+        )
+      : false;
+
+    return {
+      ...complaintObject,
+      priority,
+      priorityScore,
+      hasUpvoted,
+    };
+  });
 
     // Highest priority complaints first
     complaintsWithPriority.sort((a, b) => {
@@ -515,14 +529,13 @@ const getComplaintById = async (
 // ==========================
 // UPVOTE COMPLAINT
 // ==========================
-
-const upvoteComplaint = async (req, res) => {
+const toggleUpvoteComplaint = async (req, res) => {
   try {
     const complaintId = req.params.id;
 
     const userId =
-      req.user?.id ||
       req.user?._id ||
+      req.user?.id ||
       req.user?.userId;
 
     if (!userId) {
@@ -531,61 +544,66 @@ const upvoteComplaint = async (req, res) => {
       });
     }
 
-    /*
-      Atomic update:
-
-      Only update if this user's ID is NOT already
-      inside upvotedBy.
-
-      This also protects against fast double-clicks.
-    */
-    const complaint = await Complaint.findOneAndUpdate(
-      {
-        _id: complaintId,
-        upvotedBy: {
-          $ne: userId,
-        },
-      },
-      {
-        $addToSet: {
-          upvotedBy: userId,
-        },
-
-        $inc: {
-          upvotes: 1,
-        },
-      },
-      {
-        new: true,
-      }
-    );
+    const complaint =
+      await Complaint.findById(complaintId);
 
     if (!complaint) {
-      const existingComplaint =
-        await Complaint.findById(complaintId);
-
-      if (!existingComplaint) {
-        return res.status(404).json({
-          message: "Complaint not found",
-        });
-      }
-
-      return res.status(409).json({
-        message:
-          "You have already upvoted this complaint",
+      return res.status(404).json({
+        message: "Complaint not found",
       });
     }
 
+    // Safety for old complaints
+    if (!Array.isArray(complaint.upvotedBy)) {
+      complaint.upvotedBy = [];
+    }
+
+    const alreadyUpvoted =
+      complaint.upvotedBy.some(
+        (id) =>
+          id.toString() ===
+          userId.toString()
+      );
+
+    if (alreadyUpvoted) {
+      // Remove user's vote
+      complaint.upvotedBy =
+        complaint.upvotedBy.filter(
+          (id) =>
+            id.toString() !==
+            userId.toString()
+        );
+    } else {
+      // Add user's vote
+      complaint.upvotedBy.push(userId);
+    }
+
+    // Count always comes from actual voters
+    complaint.upvotes =
+      complaint.upvotedBy.length;
+
+    await complaint.save();
+
     return res.status(200).json({
-      message: "Complaint upvoted successfully",
-      complaint,
-      hasUpvoted: true,
+      message: alreadyUpvoted
+        ? "Upvote removed"
+        : "Complaint upvoted",
+
+      data: {
+        _id: complaint._id,
+        upvotes: complaint.upvotes,
+        hasUpvoted: !alreadyUpvoted,
+      },
     });
   } catch (error) {
-    console.error("Upvote complaint error:", error);
+    console.error(
+      "TOGGLE UPVOTE ERROR:",
+      error
+    );
 
     return res.status(500).json({
-      message: "Failed to upvote complaint",
+      message: "Failed to update upvote",
+      error: error.message,
     });
   }
 };
@@ -808,7 +826,8 @@ export {
   getAllComplaints,
   getMyComplaints,
   getComplaintById,
-  upvoteComplaint,
+  toggleUpvoteComplaint,
   updateComplaintStatus,
   submitFeedback,
+
 };

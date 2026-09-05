@@ -8,7 +8,7 @@ import {
   getAllComplaints,
   getMyComplaints,
   getComplaintById,
-  upvoteComplaint,
+toggleUpvoteComplaint,
   updateComplaintStatus,
   submitFeedback
 } from "../controllers/complaints.controllers.js";
@@ -19,6 +19,7 @@ const router = express.Router();
 // Public complaint feed
 router.get(
   "/",
+  authenticateUser,
   getAllComplaints
 );
 
@@ -50,7 +51,7 @@ router.post(
 router.patch(
   "/:id/upvote",
   authenticateUser,
-  upvoteComplaint
+  toggleUpvoteComplaint
 );
 
 

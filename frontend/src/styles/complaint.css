@@ -1704,3 +1704,28 @@ body {
 .vote-button:disabled {
   opacity: 1;
 }
+.vote-button {
+  padding: 9px 16px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background: white;
+  color: #475569;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.vote-button:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.vote-button.upvoted {
+  background: #eff6ff;
+  color: #2563eb;
+  border-color: #93c5fd;
+}
+
+.vote-button.upvoted:hover {
+  background: #dbeafe;
+}
